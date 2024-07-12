@@ -12,6 +12,12 @@
     - [去标签是去什么](#去标签是去什么)
     - [去标签后的效果](#去标签后的效果)
     - [parser的基本结构](#parser的基本结构)
+    - [枚举文件名](#枚举文件名)
+    - [解析html](#解析html)
+      - [解析title](#解析title)
+      - [解析content](#解析content)
+      - [解析url](#解析url)
+    - [保存数据到二进制文件中](#保存数据到二进制文件中)
   - [编写建立索引的模块 Index](#编写建立索引的模块-index)
   - [编写搜索引擎模块 Searcher](#编写搜索引擎模块-searcher)
   - [搭建网络服务](#搭建网络服务)
@@ -183,6 +189,161 @@ public:
 ```
 
 基本代码结构如上所示。
+
+### 枚举文件名
+
+这里需要用boost库里面的一些方法
+
+```cpp
+    static bool enum_file(const std::string& src_path, std::vector<std::string>* file_list) {
+        namespace fs = boost::filesystem;
+        fs::path root_path(src_path);
+        if (!fs::exists(root_path)) {
+            LOG(ERROR) << "enum_file file not exists" << std::endl;
+            return false;
+        }
+        fs::recursive_directory_iterator end; // 定义一个空的迭代器，用来判断递归结束
+        for (fs::recursive_directory_iterator iter(root_path); iter != end; iter++) {
+            if (!fs::is_regular_file(*iter)) // 如果不是普通文件
+                continue;
+            if (iter->path().extension() != ".html") // 如果后缀不是 html
+                continue;
+            //  当前的路径一定是一个html结束的普通网页文件
+            // LOG(DEBUG) << iter->path().string() << std::endl;
+            file_list->push_back(iter->path().string());
+        }
+        return true;
+    }
+```
+
+可以打印一下结果看看对不对: `LOG(DEBUG) << iter->path().string() << std::endl;`
+
+![](./assets/8.png)
+
+
+### 解析html
+
+```cpp
+    static bool parse_html(const std::vector<std::string>& file_list, std::vector<doc_info_t>* results) {
+        for (const std::string& file : file_list) {
+            // 1. 读取文件 read()
+            std::string result;
+            if (!ns_util::file_util::read_file(file, &result))
+                continue;
+            // 2. 解析指定的文件，提取title
+            doc_info_t doc;
+            if (!parse_title(result, &doc.__title))
+                continue;
+            // 3. 解析指定的文件，提取content
+            if (!parse_content(result, &doc.__content))
+                continue;
+            // 4. 解析指定的文件路径，构建url
+            if (!parse_url)
+                continue;
+            // 走到这里一定是完成了解析任务，当前文档的相关结果都保存在了doc里面
+            results->push_back(doc); // 细节，本质会发生拷贝，待优化
+        }
+        return true;
+    }
+```
+
+这个是非常好理解的，一步一步解析就可以了。
+
+```cpp
+    static bool parse_title(const std::string& input, std::string* title) {
+    }
+    static bool parse_content(const std::string& input, std::string* content) {
+    }
+    static bool parse_url(/*?*/) {
+    }
+```
+
+#### 解析title
+
+这一部分很简单，把`<title>`和`</title>`之间的东西拿出来就行了。
+
+```cpp
+    static bool parse_title(const std::string& file, std::string* title) {
+        // 提取title
+        std::size_t begin = file.find("<title>");
+        if (begin == std::string::npos)
+            return false;
+        std::size_t end = file.find("</title>");
+        if (begin == std::string::npos)
+            return false;
+        begin += std::string("<title>").size();
+        if (begin > end) {
+            return false;
+        }
+        *title = file.substr(begin, end - begin); // 提取title
+        return true;
+    }
+```
+
+#### 解析content
+
+这里我基于一个小型的状态机来实现。两种状态：`LABLE`和`CONTENT`。
+
+```cpp
+    static bool parse_content(const std::string& file, std::string* content) {
+        // 去标签, 基于一个简易的状态机去写
+        enum status {
+            LABLE,
+            CONTENT
+        };
+        enum status s = LABLE;
+        for (char c : file) {
+            switch (s) {
+            case LABLE:
+                if (c == 'c') // 此时标签已经被处理完毕了
+                    s = CONTENT;
+                break;
+            case CONTENT:
+                if (c == '<')
+                    s = LABLE;
+                else {
+                    // 我们不想保留 \n
+                    if (c == '\n')
+                        c = ' ';
+                    content->push_back(c);
+                }
+                break;
+            default:
+                break;
+            }
+        }
+    }
+```
+
+#### 解析url
+
+> boost库的官方文档和我们下载的资源是有路径的对应关系的
+
+官方文档路径：`https://www.boost.org/doc/libs/1_85_0/doc/html/accumulators.html`
+数据的路径：`data/input/accumulators.html`
+
+对应关系处理好就行了。
+
+```cpp
+static const std::string url_head = "https://www.boost.org/doc/libs/1_85_0/doc/html";
+```
+
+```cpp
+    static bool parse_url(const std::string& file_path, std::string* url) {
+        std::string url_tail = file_path.substr(src_path.size());
+        *url = url_head + url_tail;
+        return true;
+    } 
+```
+
+### 保存数据到二进制文件中
+
+优化写入到格式。
+
+能了能够使用`std::getline`方法直接读取一个文件里面的所有东西，所以定义规则为：
+
+> `title\3content\3url \n title\3content\3url \n title\3content\3url`
+
 
 
 ## 编写建立索引的模块 Index
