@@ -19,6 +19,12 @@
       - [解析url](#解析url)
     - [保存数据到二进制文件中](#保存数据到二进制文件中)
   - [编写建立索引的模块 Index](#编写建立索引的模块-index)
+    - [准备工作](#准备工作)
+    - [接口基本结构](#接口基本结构)
+    - [构建索引](#构建索引)
+      - [准备工作](#准备工作-1)
+      - [正排索引](#正排索引)
+      - [倒排索引](#倒排索引)
   - [编写搜索引擎模块 Searcher](#编写搜索引擎模块-searcher)
   - [搭建网络服务](#搭建网络服务)
   - [搭建前端页面](#搭建前端页面)
@@ -344,9 +350,140 @@ static const std::string url_head = "https://www.boost.org/doc/libs/1_85_0/doc/h
 
 > `title\3content\3url \n title\3content\3url \n title\3content\3url`
 
-
-
 ## 编写建立索引的模块 Index
+
+### 准备工作
+
+```cpp
+namespace ns_index {
+typedef struct __doc_info {
+    std::string __title; // 文档标题
+    std::string __content; // 文档内容
+    std::string __url; // 文档url
+    int __doc_id; // 文档的id
+} doc_info_t;
+class index {
+    private:
+};
+```
+
+这里相对于前面parser部分，这里弄多了一个 `int __doc_id; // 文档的id`，后面具体如何使用后面再说。
+
+所以，我们直接建立正排索引的数据结构就行了。
+
+```cpp
+std::vector<doc_info_t> __forward_index; // 正排索引
+```
+
+那么倒排索引，前面我们提到了，这个是一个关键字到文档的一个映射。
+
+关键字有哪些呢？要先处理一下。
+
+```cpp
+struct inverted_elem {
+    int __doc_id;
+    std::string __word;
+    int __weight;
+};
+```
+**因此倒排索引一定是一个关键字和一组（个）inverted_elem对应的！**
+
+因此，可以设置倒排索引的数据结构：
+
+```cpp
+typedef std::vector<inverted_elem> inverted_list_t;
+std::unordered_map<std::string, inverted_list_t> __inverted_index; // 倒排索引
+```
+
+### 接口基本结构
+
+```cpp
+    // 根据doc_id找到文档内容
+    doc_info_t* get_forward_index(const uint64_t& doc_id) {
+        return nullptr;
+    }
+    // 根据关键字，获得倒排拉链
+    inverted_list_t* get_inverted_list(const std::string& word) {
+        return nullptr;
+    }
+    // 根据去标签格式化之后的文档，构建正排和倒排索引
+    bool build_index(const std::string& input) {
+        // input: raw.bin
+        return true;
+    }
+```
+
+### 构建索引
+
+#### 准备工作
+
+这一部分是非常重要。其他部分，比如返回正排索引倒排索引，其实就是在`vector`，`hash_map`里面拿东西而已，都是非常简单的，所以最关键的，就是构建索引部分的逻辑。
+
+```cpp
+        std::ifstream in(input, std::ios::in | std::ios::binary);
+        if (!in.is_open()) {
+            LOG(ERROR) << "path file: " << input << " open error" << std::endl;
+            return false;
+        }
+        std::string line;
+        std::size_t cnt = 0; // 表示第几行
+        while (std::getline(in, line)) {
+            // 建立正排索引
+            doc_info* doc = __build_forward_index(line);
+            if (doc == nullptr) {
+                LOG(WARNING) << "build_forward_index error in line:" << cnt << std::endl;
+                continue;
+            }
+            // 建立倒排索引
+            __build_inverted_index(*doc);
+            cnt++;
+        }
+```
+
+所以我们要写两个私有的接口来建立正排索引和倒排索引。
+
+#### 正排索引
+
+步骤如下所示：
+
+1. 解析line, 字符串切分
+2. 字符串进行填充到docinfo
+3. 插入到正排索引的vector中
+
+所以我们需要一个把字符串一分为三的函数，可以直接放到`util.hpp`里面去。
+
+```cpp
+    doc_info* __build_forward_index(const std::string& line) {
+        // 1. 解析line, 字符串切分
+        std::vector<std::string> results; // 最终
+        ns_util::string_util::cut_string(line, &results, sep);
+        if (results.size() != 3)
+            // 切分出错了
+            return nullptr;
+        // 2. 字符串进行填充到docinfo
+        doc_info doc;
+        doc.__title = results[0]; 
+        doc.__content = results[1];
+        doc.__title = results[2];
+        doc.__doc_id = __forward_index.size();
+        // 3. 插入到正排索引的vector中
+        __forward_index.push_back(doc);
+        return &__forward_index.back();
+    }
+```
+
+然后切分字符串可以用boost库里面的方法：
+
+```cpp
+    static void cut_string(const std::string& target, std::vector<std::string>* out, char sep) {
+        // boost split
+        boost::split(*out, target, boost::is_any_of(sep), boost::token_compress_on);
+    }
+```
+
+
+#### 倒排索引
+
 
 ## 编写搜索引擎模块 Searcher
 

@@ -1,7 +1,7 @@
 cc=g++
 
-parser: parser.cc
-	$(cc) -o $@ $^ -lboost_system -lboost_filesystem -std=c++11
+parser: ./src/parser.cc
+	$(cc) -o $@ $^ -lboost_system -lboost_filesystem -std=c++11 -g
 .PHONY:clean
 clean:
 	rm -f parser

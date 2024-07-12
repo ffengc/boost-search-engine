@@ -7,6 +7,8 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <vector>
+#include <boost/algorithm/string.hpp>
 
 namespace ns_util {
 class file_util {
@@ -22,6 +24,13 @@ public:
             *out += line;
         in.close();
         return true;
+    }
+};
+class string_util {
+public:
+    static void cut_string(const std::string& target, std::vector<std::string>* out, char sep) {
+        // boost split
+        boost::split(*out, target, boost::is_any_of(sep), boost::token_compress_on);
     }
 };
 } // namespace ns_util

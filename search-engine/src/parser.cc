@@ -1,6 +1,6 @@
 
 
-#include "./parser.hpp"
+#include "../include/parser.hpp"
 
 
 int main() {
