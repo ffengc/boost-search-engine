@@ -30,6 +30,7 @@
     - [基本代码结构](#基本代码结构)
     - [把index设置成单例模式](#把index设置成单例模式)
     - [编写search功能](#编写search功能)
+    - [编写测试用的 server 和收尾工作](#编写测试用的-server-和收尾工作)
   - [搭建网络服务](#搭建网络服务)
   - [搭建前端页面](#搭建前端页面)
 
@@ -707,7 +708,77 @@ makefile也要带上链接库: `-ljsoncpp`。
         *json_string = writer.write(root); // 序列化！
 ```
 
+### 编写测试用的 server 和收尾工作
 
+```cpp
+#include "../include/searcher.hpp"
+
+const std::string input = "./data/raw/raw.bin";
+
+int main() {
+    // for test
+    ns_searcher::searcher * ser = new ns_searcher::searcher();
+    ser->init_searcher(input);
+    std::string query;
+    std::string json_string;
+    while(true) {
+        std::cout << "input Query# ";
+        std::cin >> query;
+        ser->search(query, &json_string);
+        std::cout << json_string << std::endl;
+    }
+    return 0;
+}
+```
+
+![](./assets/12.png)
+
+输入 Query 为 filesystem 看看结果，点开链接看看对不对就行了。
+
+![](./assets/13.png)
+
+![](./assets/14.png)
+
+打开确实没问题，这就说明我们的逻辑没毛病了。当然还需要相关的测试。
+
+先把摘要建立过程搞好。
+
+总不能给浏览器客户端返回全文吧。
+
+当然建立摘要最简单的，就是直接截取前100字节，但是也不太好。我们想搞一个好一点的摘要，能体现内容的。最好就是接一个AI接口来生成摘要，不过这里简化了这个方法。
+
+策略如下：
+
+```cpp
+    std::string get_desc(const std::string& html_content, const std::string& word) {
+        // 找到word在html_content中的首次出现，然后往前找n个字节，往后找m个字节，截取出这部分内容
+    }
+```
+
+这里面有非常多的细节需要注意！写代码的时候要多调试才能找到问题。
+```cpp
+    std::string get_desc(const std::string& html_content, const std::string& word) {
+        // 找到word在html_content中的首次出现，然后往前找n个字节，往后找m个字节，截取出这部分内容
+        const int prev_step = 150;
+        const int next_step = 180;
+        // 1. 找到首次出现
+        auto iter = std::search(html_content.begin(), html_content.end(), word.begin(), word.end(), [](int x, int y) { return std::tolower(x) == std::tolower(y); });
+        if (iter == html_content.end())
+            return "null: iter == html_content.end()"; // 这种情况是不可能存在的, 因为文本里一定有关键字word
+        std::size_t pos = std::distance(html_content.begin(), iter);
+        // 2. 获取start，end
+        int start = 0; // 不能用size_t防止减成负数
+        int end = html_content.size() - 1;
+        if (pos > start + prev_step)
+            start = pos - prev_step;
+        if ((int)pos < (int)(end - next_step))
+            end = pos + next_step;cle
+        // 3. 截取字串
+        if (start >= end)
+            return "null: start >= end"; // 不可能情况
+        return html_content.substr(start, end - start);
+    }
+```
 
 
 ## 搭建网络服务

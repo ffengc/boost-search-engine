@@ -18,8 +18,13 @@ public:
     void init_searcher(const std::string& input) {
         // 1. 获取或者创建index对象
         __index = ns_index::index::get_instance();
+        LOG(INFO) << "get words index success" << std::endl;
         // 2. 根据index对象建立索引
-        __index->build_index(input);
+        if (!__index->build_index(input)) {
+            LOG(FATAL) << "build words index failed" << std::endl;
+            exit(1);
+        }
+        LOG(INFO) << "build words index success" << std::endl;
     }
     void search(const std::string& query, std::string* json_string) {
         // query: 搜索关键字
@@ -54,12 +59,33 @@ public:
             Json::Value elem;
             elem["title"] = doc->__title;
             // doc->__content 是去标签的全部结果，不是我们想要的，我们想要的只有一部分。TODO
-            elem["desc"] = doc->__content;
+            elem["desc"] = get_desc(doc->__content, item.__word);
             elem["url"] = doc->__url;
             root.append(elem); // 按顺序append到root中了
         }
         Json::StyledWriter writer;
         *json_string = writer.write(root); // 序列化！
+    }
+    std::string get_desc(const std::string& html_content, const std::string& word) {
+        // 找到word在html_content中的首次出现，然后往前找n个字节，往后找m个字节，截取出这部分内容
+        const int prev_step = 150;
+        const int next_step = 180;
+        // 1. 找到首次出现
+        auto iter = std::search(html_content.begin(), html_content.end(), word.begin(), word.end(), [](int x, int y) { return std::tolower(x) == std::tolower(y); });
+        if (iter == html_content.end())
+            return "null: iter == html_content.end()"; // 这种情况是不可能存在的, 因为文本里一定有关键字word
+        std::size_t pos = std::distance(html_content.begin(), iter);
+        // 2. 获取start，end
+        int start = 0; // 不能用size_t防止减成负数
+        int end = html_content.size() - 1;
+        if (pos > start + prev_step)
+            start = pos - prev_step;
+        if ((int)pos < (int)(end - next_step))
+            end = pos + next_step;
+        // 3. 截取字串
+        if (start >= end)
+            return "null: start >= end"; // 不可能情况
+        return html_content.substr(start, end - start);
     }
 };
 } // namespace ns_searcher
