@@ -25,6 +25,7 @@
       - [准备工作](#准备工作-1)
       - [正排索引](#正排索引)
       - [倒排索引](#倒排索引)
+      - [处理一个遗留问题](#处理一个遗留问题)
   - [编写搜索引擎模块 Searcher](#编写搜索引擎模块-searcher)
   - [搭建网络服务](#搭建网络服务)
   - [搭建前端页面](#搭建前端页面)
@@ -484,6 +485,100 @@ std::unordered_map<std::string, inverted_list_t> __inverted_index; // 倒排索�
 
 #### 倒排索引
 
+原理：
+- 接口拿到的是一个格式化的内容，标题，内容等
+- 因为当前我们是一个一个文档进行处理的，一个文档会包含多个词，都应当到当前的doc_id
+- 最终目的：根据文档内容，形成一个或者多个`inverted_elem`
+- 所以需要对标题和内容都要先进行分词操作
+- 然后要进行词频统计，然后我们也可以特定设置，在标题中出现的词，可以认为相关性更高一些
+- 做完上面的步骤之后，就可以知道在文档中，标题和内容每个词出现的次数
+- 然后我们就需要自定义相关性，设置：标题里面的相关性为10，内容中的相关性为1
+
+**cppjieba安装：**
+
+> https://github.com/yanyiwu/cppjieba
+
+cppjieba是header only的，所以直接包含他的头文件即可了。`include/cpp/*.hpp`
+
+具体细节可以看cppjieba的readme
+
+我们只需要用cppjieba的CutForSearch部分功能，它里面有很多功能。
+
+**需要看他的demo.cpp**
+
+注意：需要手动把 `cppjieba/deps/limonp` 的内容拷贝到 `cppjieba/include/cppjieba` 里面去，否则编译会不通过
+
+![](./assets/9.png)
+
+把jieba放到对应的头文件目录中。
+
+把`limonp`链接过来。
+
+![](./assets/10.png)
+
+把词库引过来。
+
+![](./assets/11.png)
+
+因为jieba不仅仅是在倒排索引这里要用，在后面search的时候也要用的，所以放到`util.hpp`里面统一去管理。
+
+词库需要引入并处理好路径，然后调用`CutForSearch`就行了。
+
+```cpp
+const char* const DICT_PATH = "./cppjieba/dict/jieba.dict.utf8";
+const char* const HMM_PATH = "./cppjieba/dict/hmm_model.utf8";
+const char* const USER_DICT_PATH = "./cppjieba/dict/user.dict.utf8";
+const char* const IDF_PATH = "./cppjieba/dict/idf.utf8";
+const char* const STOP_WORD_PATH = "./cppjieba/dict/stop_words.utf8";
+class jieba_util {
+private:
+    static cppjieba::Jieba jieba;
+public:
+    void cut_string(const std::string& src, std::vector<std::string>* out) {
+        jieba.CutForSearch(src, *out);
+    }
+};
+cppjieba::Jieba jieba_util::jieba(DICT_PATH, HMM_PATH, USER_DICT_PATH, IDF_PATH, STOP_WORD_PATH); // static 要在类外来定义
+```
+
+因此我们就可以完善建立倒排索引的代码了。
+
+```cpp
+    bool __build_inverted_index(const doc_info& doc) {
+        struct word_count {
+            int title_count;
+            int content_count;
+            word_count()
+                : title_count(0)
+                , content_count(0) { }
+        };
+        std::unordered_map<std::string, word_count> word_map; // 用来暂存词频的映射表
+        // 标题分词
+        std::vector<std::string> title_words;
+        ns_util::jieba_util::cut_string(doc.__title, &title_words);
+        for (auto& s : title_words)
+            word_map[s].title_count++;
+        // 内容分词
+        std::vector<std::string> content_words;
+        ns_util::jieba_util::cut_string(doc.__content, &content_words);
+        for (auto& s : content_words)
+            word_map[s].content_count++;
+        // 构建倒排拉链
+        for (auto& word_pair : word_map) {
+            inverted_elem item;
+            item.__doc_id = doc.__doc_id;
+            item.__word = word_pair.first;
+            item.__weight = title_co_rate * (word_pair.second.title_count) + content_co_rate * (word_pair.second.content_count); // 相关性
+            // 把东西放进去
+            inverted_list_t & inverted_list = __inverted_index[word_pair.first];
+            inverted_list.push_back(item);
+        }
+    }
+```
+
+#### 处理一个遗留问题
+
+很明显，搜索引擎是不会区分大小写的，所以我们要处理一下。
 
 ## 编写搜索引擎模块 Searcher
 

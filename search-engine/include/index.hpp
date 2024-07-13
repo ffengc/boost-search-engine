@@ -24,6 +24,8 @@ struct inverted_elem {
 };
 typedef std::vector<inverted_elem> inverted_list_t; // 倒排拉链
 static const char sep = '\3';
+static const int title_co_rate = 10; // 计算title和内容出现词的权重
+static const int content_co_rate = 1;
 class index {
 private:
     // 正排索引的数据结构使用数组，数组的下标天然就是文档的id
@@ -91,15 +93,48 @@ private:
             return nullptr;
         // 2. 字符串进行填充到docinfo
         doc_info doc;
-        doc.__title = results[0]; 
+        doc.__title = results[0];
         doc.__content = results[1];
         doc.__title = results[2];
         doc.__doc_id = __forward_index.size();
         // 3. 插入到正排索引的vector中
-        __forward_index.push_back(doc);
+        __forward_index.push_back(std::move(doc));
         return &__forward_index.back();
     }
-    bool __build_inverted_index(const doc_info& doc) { }
+    bool __build_inverted_index(const doc_info& doc) {
+        struct word_count {
+            int title_count;
+            int content_count;
+            word_count()
+                : title_count(0)
+                , content_count(0) { }
+        };
+        std::unordered_map<std::string, word_count> word_map; // 用来暂存词频的映射表
+        // 标题分词
+        std::vector<std::string> title_words;
+        ns_util::jieba_util::cut_string(doc.__title, &title_words);
+        for (auto& s : title_words) {
+            boost::to_lower(s);
+            word_map[s].title_count++;
+        }
+        // 内容分词
+        std::vector<std::string> content_words;
+        ns_util::jieba_util::cut_string(doc.__content, &content_words);
+        for (auto& s : content_words) {
+            boost::to_lower(s);
+            word_map[s].content_count++;
+        }
+        // 构建倒排拉链
+        for (auto& word_pair : word_map) {
+            inverted_elem item;
+            item.__doc_id = doc.__doc_id;
+            item.__word = word_pair.first;
+            item.__weight = title_co_rate * (word_pair.second.title_count) + content_co_rate * (word_pair.second.content_count); // 相关性
+            // 把东西放进去
+            inverted_list_t& inverted_list = __inverted_index[word_pair.first];
+            inverted_list.push_back(std::move(item));
+        }
+    }
 };
 } // namespace ns_index
 

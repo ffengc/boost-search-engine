@@ -3,12 +3,13 @@
 #ifndef __YUFC_SERACH_ENGINE_UTIL_HPP__
 #define __YUFC_SERACH_ENGINE_UTIL_HPP__
 
+#include "cppjieba/Jieba.hpp"
 #include "log.hpp"
+#include <boost/algorithm/string.hpp>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
-#include <boost/algorithm/string.hpp>
 
 namespace ns_util {
 class file_util {
@@ -33,6 +34,21 @@ public:
         boost::split(*out, target, boost::is_any_of(sep), boost::token_compress_on);
     }
 };
+
+const char* const DICT_PATH = "./cppjieba/dict/jieba.dict.utf8";
+const char* const HMM_PATH = "./cppjieba/dict/hmm_model.utf8";
+const char* const USER_DICT_PATH = "./cppjieba/dict/user.dict.utf8";
+const char* const IDF_PATH = "./cppjieba/dict/idf.utf8";
+const char* const STOP_WORD_PATH = "./cppjieba/dict/stop_words.utf8";
+class jieba_util {
+private:
+    static cppjieba::Jieba jieba;
+public:
+    static void cut_string(const std::string& src, std::vector<std::string>* out) {
+        jieba.CutForSearch(src, *out);
+    }
+};
+cppjieba::Jieba jieba_util::jieba(DICT_PATH, HMM_PATH, USER_DICT_PATH, IDF_PATH, STOP_WORD_PATH); // static 要在类外来定义
 } // namespace ns_util
 
 #endif
