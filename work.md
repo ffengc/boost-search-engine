@@ -27,6 +27,9 @@
       - [倒排索引](#倒排索引)
       - [处理一个遗留问题](#处理一个遗留问题)
   - [编写搜索引擎模块 Searcher](#编写搜索引擎模块-searcher)
+    - [基本代码结构](#基本代码结构)
+    - [把index设置成单例模式](#把index设置成单例模式)
+    - [编写search功能](#编写search功能)
   - [搭建网络服务](#搭建网络服务)
   - [搭建前端页面](#搭建前端页面)
 
@@ -581,6 +584,131 @@ cppjieba::Jieba jieba_util::jieba(DICT_PATH, HMM_PATH, USER_DICT_PATH, IDF_PATH,
 很明显，搜索引擎是不会区分大小写的，所以我们要处理一下。
 
 ## 编写搜索引擎模块 Searcher
+
+### 基本代码结构
+
+建立索引是第一步，后面我们就要根据索引去进行搜索了。
+
+```cpp
+namespace ns_searcher {
+class searcher {
+private:
+    ns_index::index* __index; // 供系统进行查找的索引
+public:
+    searcher() = default;
+    ~searcher() = default;
+
+public:
+    void init_searcher(const std::string& input) {
+        // 1. 获取或者创建index对象
+        // 2. 根据index对象建立索引
+    }
+    void search(const std::string& query, std::string* json_string) {
+        // query: 搜索关键字
+        // json_string: 返回用户浏览器的搜索结果
+        // 1. 对query分词
+        // 2. 触发：就是根据分词的各个词，进行index查找
+        // 3. 合并排序：汇总查找结果，按照相关性进行降序排序
+        // 4. 构建：根据查找出来的结果构建json串，jsoncpp
+    }
+};
+} // namespace ns_searcher
+```
+
+如何进行搜索：
+1. 对query分词
+2. 触发：就是根据分词的各个词，进行index查找
+3. 合并排序：汇总查找结果，按照相关性进行降序排序
+4. 构建：根据查找出来的结果构建json串，jsoncpp
+
+### 把index设置成单例模式
+
+因为基本上index构造一次之后后面都不会变的了，因此设置成单例，避免在程序中有过多的index对象。
+
+然后构造单例会有线程安全问题，所以要加锁，不过这一部分都是C++和系统的知识了，这里不多叙述，具体可以见代码。
+
+### 编写search功能
+
+按照这个步骤来写就没问题了。
+1. 对query分词
+2. 触发：就是根据分词的各个词，进行index查找
+3. 合并排序：汇总查找结果，按照相关性进行降序排序
+4. 构建：根据查找出来的结果构建json串，jsoncpp
+
+```cpp
+    void search(const std::string& query, std::string* json_string) {
+        // query: 搜索关键字
+        // json_string: 返回用户浏览器的搜索结果
+        // 1. 对query分词
+        std::vector<std::string> query_words;
+        ns_util::jieba_util::cut_string(query, &query_words);
+        // 2. 触发：就是根据分词的各个词，进行index查找
+        // 注意大小写，这里需要忽略大小写
+        ns_index::inverted_list_t inverted_list_all; // 内部是 inverted_elem
+        for (std::string word : query_words) {
+            boost::to_lower(word);
+            // 必须先查倒排
+            ns_index::inverted_list_t* inverted_list = __index->get_inverted_list(word); // 找倒排
+            if (nullptr == inverted_list)
+                // 没有倒排就一定没有正排
+                continue;
+            inverted_list_all.insert(inverted_list_all.end(), inverted_list->begin(), inverted_list->end()); // 批量化插入
+            // 这里的 inverted_list_all 可能会有遗留问题，可能文档名是有重复的
+        }
+        // 3. 合并排序：汇总查找结果，按照相关性进行降序排序
+        std::sort(inverted_list_all.begin(), inverted_list_all.end(), [](const ns_index::inverted_elem& e1, const ns_index::inverted_elem& e2) {
+            return e1.__weight > e2.__weight;
+        });
+        // 4. 构建：根据查找出来的结果构建json串，jsoncpp
+        for (auto& item : inverted_list_all) {
+            ns_index::doc_info* doc = __index->get_forward_index(item.__doc_id);
+            if(nullptr == doc) continue;
+            // 序列化
+        }
+    }
+```
+
+拿到结果之后，就要按照jsoncpp了，因为先准备需要序列化了。
+
+**安装jsoncpp**
+
+我是ubuntu22.04
+
+> sudo apt install libjsoncpp-dev
+
+如果是centos
+
+> sudo yum install -y jsoncpp-devel
+
+
+然后引入对应的头文件 `#include <jsoncpp/json/json.h>` 我是这个路径，具体要看版本和情况。
+
+makefile也要带上链接库: `-ljsoncpp`。
+
+
+然后我们就可以完成序列化的步骤了：
+
+```cpp
+        // 4. 构建：根据查找出来的结果构建json串，jsoncpp
+        Json::Value root;
+        for (auto& item : inverted_list_all) {
+            ns_index::doc_info* doc = __index->get_forward_index(item.__doc_id);
+            if (nullptr == doc)
+                continue;
+            // 序列化
+            Json::Value elem;
+            elem["title"] = doc->__title;
+            // doc->__content 是去标签的全部结果，不是我们想要的，我们想要的只有一部分。TODO
+            elem["desc"] = doc->__content;
+            elem["url"] = doc->__url;
+            root.append(elem); // 按顺序append到root中了
+        }
+        Json::StyledWriter writer;
+        *json_string = writer.write(root); // 序列化！
+```
+
+
+
 
 ## 搭建网络服务
 

@@ -6,6 +6,7 @@
 #include "log.hpp"
 #include "util.hpp"
 #include <fstream>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -32,9 +33,24 @@ private:
     std::vector<doc_info_t> __forward_index; // 正排索引
     // 倒排索引一定是一个关键字和一组（个）inverted_elem对应
     std::unordered_map<std::string, inverted_list_t> __inverted_index; // 倒排索引
-public:
+private:
     index() { }
+    index(const index&) = delete;
+    index& operator=(const index&) = delete;
+    static index* __instance;
+    static std::mutex __instance_lock;
+
+public:
     ~index() { }
+    static index* get_instance() {
+        if (nullptr == __instance) {
+            __instance_lock.lock();
+            if (nullptr == __instance)
+                __instance = new index();
+            __instance_lock.unlock();
+        }
+        return __instance;
+    }
 
 public:
     // 根据doc_id找到文档内容
@@ -136,6 +152,7 @@ private:
         }
     }
 };
+index* index::__instance = nullptr;
 } // namespace ns_index
 
 #endif
