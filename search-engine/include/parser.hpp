@@ -1,4 +1,8 @@
-
+/*
+ * Write by Yufc
+ * See https://github.com/ffengc/boost-search-engine
+ * please cite my project link: https://github.com/ffengc/boost-search-engine when you use this code
+ */
 
 #ifndef __YUFC_SERACH_ENGINE_PARSER_HPP__
 #define __YUFC_SERACH_ENGINE_PARSER_HPP__

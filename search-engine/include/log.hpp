@@ -16,6 +16,13 @@ enum STATUES // 日志等级
     FATAL
 };
 
+/*
+ * Write by Yufc
+ * See https://github.com/ffengc/boost-search-engine
+ * please cite my project link: https://github.com/ffengc/boost-search-engine when you use this code
+ */
+
+
 // 定义颜色代码
 #define RESET "\033[0m"
 #define RED "\033[1;31m" // 加粗红色

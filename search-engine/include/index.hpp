@@ -1,4 +1,8 @@
-
+/*
+ * Write by Yufc
+ * See https://github.com/ffengc/boost-search-engine
+ * please cite my project link: https://github.com/ffengc/boost-search-engine when you use this code
+ */
 
 #ifndef __YUFC_SERACH_ENGINE_INDEX_HPP__
 #define __YUFC_SERACH_ENGINE_INDEX_HPP__
@@ -25,7 +29,7 @@ struct inverted_elem {
 };
 typedef std::vector<inverted_elem> inverted_list_t; // 倒排拉链
 static const char sep = '\3';
-static const int title_co_rate = 10; // 计算title和内容出现词的权重
+static const int title_co_rate = 20000; // 计算title和内容出现词的权重
 static const int content_co_rate = 1;
 class index {
 private:

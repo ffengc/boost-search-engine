@@ -5,168 +5,305 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="http://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <link rel="icon" type="image/png" href="boost-icon.png">
     <title>Boost Search Engine</title>
     <style>
-        /* 去掉网页中的所有的默认内外边距，html的盒子模型 */
         * {
-            /* 设置外边距 */
             margin: 0;
-            /* 设置内边距 */
             padding: 0;
+            box-sizing: border-box;
         }
 
-        /* 将我们的body内的内容100%和html的呈现吻合 */
-        html,
         body {
-            height: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
         }
 
-        /* 类选择器.container */
         .container {
-            /* 设置div的宽度 */
             width: 800px;
-            /* 通过设置外边距达到居中对齐的目的 */
-            margin: 0px auto;
-            /* 设置外边距的上边距，保持元素和网页的上部距离 */
-            margin-top: 15px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
-        /* 复合选择器，选中container 下的 search */
-        .container .search {
-            /* 宽度与父标签保持一致 */
+        .search {
             width: 100%;
-            /* 高度设置为52px */
-            height: 52px;
+            display: flex;
+            margin-bottom: 20px;
         }
 
-        /* 先选中input标签， 直接设置标签的属性，先要选中， input：标签选择器*/
-        /* input在进行高度设置的时候，没有考虑边框的问题 */
-        .container .search input {
-            /* 设置left浮动 */
-            float: left;
-            width: 600px;
+        .search input {
+            flex-grow: 1;
             height: 50px;
-            /* 设置边框属性：边框的宽度，样式，颜色 */
-            border: 1px solid black;
-            /* 去掉input输入框的有边框 */
-            border-right: none;
-            /* 设置内边距，默认文字不要和左侧边框紧挨着 */
             padding-left: 10px;
-            /* 设置input内部的字体的颜色和样式 */
-            color: #CCC;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-right: none;
+        }
+
+        .search button {
+            width: 150px;
+            border: none;
+            background-color: #4e6ef2;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .search-image {
+            margin: 20px 0;
+            text-align: center;
+            max-width: 100%;
+        }
+
+        .search-image img {
+            max-width: 100%;
+            /* 使图片宽度不超过其容器的宽度 */
+            height: auto;
+            /* 高度自动缩放以保持图片的比例 */
+        }
+
+        .result .item {
+            margin-top: 10px;
+        }
+
+        .result .item a {
+            display: block;
+            text-decoration: none;
+            font-size: 18px;
+            color: #4e6ef2;
+            margin-bottom: 5px;
+        }
+
+        .result .item p {
             font-size: 14px;
         }
 
-        /* 先选中button标签， 直接设置标签的属性，先要选中， button：标签选择器*/
-        .container .search button {
-            /* 设置left浮动 */
-            float: left;
-            width: 150px;
-            height: 52px;
-            /* 设置button的背景颜色，#4e6ef2 */
-            background-color: #4e6ef2;
-            /* 设置button中的字体颜色 */
-            color: #FFF;
-            /* 设置字体的大小 */
-            font-size: 19px;
-            font-family: Georgia, 'Times New Roman', Times, serif;
-        }
-
-        .container .result {
-            width: 100%;
-        }
-
-        .container .result .item {
-            margin-top: 15px;
-        }
-
-        .container .result .item a {
-            /* 设置为块级元素，单独站一行 */
+        .result .item a,
+        .result .item i,
+        .result .item p {
+            overflow: hidden;
+            /* 隐藏超出容器的内容 */
+            text-overflow: ellipsis;
+            /* 使用省略号表示被剪切的文本 */
+            white-space: nowrap;
+            /* 不允许文本换行 */
             display: block;
-            /* a标签的下划线去掉 */
-            text-decoration: none;
-            /* 设置a标签中的文字的字体大小 */
-            font-size: 20px;
-            /* 设置字体的颜色 */
-            color: #4e6ef2;
+            /* 确保元素是块级，这对应用这些属性是必需的 */
+            width: 100%;
+            /* 设置元素宽度占满整个容器 */
         }
 
-        .container .result .item a:hover {
+        .result .item i {
+            color: green;
+            font-style: normal;
+        }
+
+        .result-count {
+            display: none;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .back-btn {
+            display: none;
+            padding: 8px 16px;
+            font-size: 16px;
+            color: white;
+            background-color: #4e6ef2;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        /* 个人广告部分 */
+        .ads {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            /* 更淡的背景色 */
+            border-radius: 5px;
+            font-size: 14px;
+            /* 较小的字体大小 */
+            color: #666;
+            /* 柔和的字体颜色 */
+        }
+
+        .ads img {
+            width: 16px;
+            /* 图标大小 */
+            height: 16px;
+            margin-right: 8px;
+            vertical-align: middle;
+            /* 垂直对齐 */
+        }
+
+        .project-description {
+            margin-bottom: 5px;
+        }
+
+        .personal-links {
+            margin-bottom: 5px;
+        }
+
+        .personal-links span,
+        .personal-links a {
+            display: inline-block;
+            /* 内联块显示，保持在同一行 */
+            vertical-align: middle;
+            /* 垂直对齐 */
+            margin-right: 5px;
+            /* 适当的间距 */
+        }
+
+        .personal-links a {
+            color: #0077cc;
+            text-decoration: none;
+        }
+
+        .personal-links a:hover {
             text-decoration: underline;
         }
 
-        .container .result .item p {
-            margin-top: 5px;
-            font-size: 16px;
-            font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+        .ads h2 {
+            color: #333;
+            /* 设置标题颜色 */
+            font-size: 24px;
+            /* 设置标题字体大小 */
         }
 
-        .container .result .item i {
-            /* 设置为块级元素，单独站一行 */
-            display: block;
-            /* 取消斜体风格 */
-            font-style: normal;
-            color: green;
+        .ads ul {
+            list-style-type: none;
+            /* 移除列表项前的标记 */
+            padding: 0;
+            /* 移除内边距 */
+        }
+
+        .ads li {
+            margin-bottom: 10px;
+            /* 设置列表项的底部外边距 */
+        }
+
+        .ads a:hover {
+            text-decoration: underline;
+            /* 鼠标悬停时添加下划线 */
         }
     </style>
 </head>
 
 <body>
     <div class="container">
+        <div class="search-image">
+            <img src="img/boost-search-engine.png" alt="Boost Search Engine">
+        </div>
         <div class="search">
-            <input type="text" value="please input the key word ...">
+            <input type="text" placeholder="please input the key word ...">
             <button onclick="Search()">GO</button>
         </div>
+        <div class="result-count">Results found: 0</div>
+        <button class="back-btn">Back</button>
         <div class="result">
+        </div>
+        <div class="ads">
+            <div class="project-description">
+                <span><img src="img/cv.jpeg"> <strong>Project abstract:</strong></span>
+                <a>This project is a search engine implementation based on the Boost library, aiming to provide an
+                    efficient and accurate search system specifically for searching Boost documents. By elaborating on
+                    the search engine building process, from data preprocessing to index creation, to search query
+                    processing and result presentation, this project shows how to build a complete search engine system.
+                    The technology stack covers C++, Boost library, Html, CSS and JavaScript, realizing back-end index
+                    construction and front-end user interaction. The basic functions of the project are comprehensive,
+                    and advanced features such as word frequency statistics, dynamically updated indexes, and search
+                    result priority sorting have been added, which significantly improves search efficiency and
+                    accuracy. This makes the search engine particularly suitable for developers to quickly find the
+                    technical documents they need when using Boost libraries, greatly improving development efficiency
+                    and document accessibility.</a>
+            </div>
+            <div class="personal-links">
+                <span><img src="img/github.jpeg"> <strong>GitHub:</strong></span>
+                <a href="https://github.com/ffengc">https://github.com/ffengc</a>
+            </div>
+            <div class="personal-links">
+                <span><img src="img/boost-icon.png"> <strong>Homepage:</strong></span>
+                <a href="https://ffengc.github.io">https://ffengc.github.io</a>
+            </div>
+            <div class="personal-links">
+                <span><img src="img/blog.jpeg"> <strong>Blogpage:</strong></span>
+                <a href="https://ffengc.github.io/gh-blog/">https://ffengc.github.io/gh-blog/</a>
+            </div>
+            <div class="personal-links">
+                <span><img src="img/gmail.png"> <strong>Mail:</strong></span>
+                <a href="yufc779@gmail.com">yufc779@gmail.com</a>
+            </div>
         </div>
     </div>
     <script>
+        $(document).ready(function () {
+            $(".search input").on("keyup", function (event) {
+                if (event.keyCode === 13) { // keyCode 13 is the Enter key
+                    Search();
+                }
+            });
+        });
+
         function Search() {
-            // alert 是浏览器的一个弹出框
-            // alert("hello js");
-            // 如果直接使用原生的js成本会比较高，我们推荐使用jQuery, $可以理解成Jqery的别称
-            // 1. 提取数据
-            let query = $(".container .search input").val(); // 拿到input里面的内容
-            // console.log("query = " + query);
-            // 2. 发起http请求, ajax就是一个和后端进行数据交互的函数（jQuery）
+            let query = $(".container .search input").val();
+            if (!query) {
+                alert("Please enter a keyword to search.");
+                return;
+            }
+            $(".search-image").hide(); // 隐藏图片
+            $(".back-btn").show(); // 显示返回按钮
+            $(".result-count").show(); // 确保显示结果数量
+            $(".ads").hide(); // 隐藏广告内容
+
             $.ajax({
                 type: "GET",
                 url: "/s?word=" + query,
-                success: function (data) { // 这里的意思是，如果请求成功，拿到的数据就会放到data里面
-                    console.log(data);
-                    BuildHtml(data);
+                success: function (data) {
+                    if (!data) {
+                        $(".result-count").text("Results found: 0");
+                        $(".result").empty(); // 清空结果
+                        return;
+                    } else {
+                        BuildHtml(data);
+                        $(".result-count").text("Results found: " + data.length);
+                    }
+                    // 每次搜索成功后，更新并显示结果数量
+                },
+                error: function () {
+                    // 在发生错误时，也更新结果数量显示
+                    $(".result-count").text("Failed to retrieve results.");
                 }
-            })
+            });
         }
+
         function BuildHtml(data) {
-            // 把结果插入到 <div class="result"> 里面去
             let result_table = $(".container .result");
-            // 清空历史搜索结果
             result_table.empty();
-            for(let elem of data) {
-                // 遍历所有的data
-                // console.log(elem.title);
-                // console.log(elem.url);
-                let a_label = $("<a>", {
-                    text: elem.title,
-                    href: elem.url,
-                    target: "_blank"
-                });
-                let p_label = $("<p>", {
-                    text: elem.desc
-                });
-                let i_label = $("<i>", {
-                    text: elem.url
-                });
-                let div_label = $("<div>", {
-                    class: "item"
-                });
-                a_label.appendTo(div_label);
-                p_label.appendTo(div_label);
-                i_label.appendTo(div_label);
-                div_label.appendTo(result_table);
+
+            for (let elem of data) {
+                let a_label = $("<a>", { text: elem.title, href: elem.url, target: "_blank" });
+                let p_label = $("<p>", { text: elem.desc });
+                let i_label = $("<i>", { text: elem.url });
+
+                $("<div>").addClass("item")
+                    .append(a_label, p_label, i_label)
+                    .appendTo(result_table);
             }
         }
+
+        $(".back-btn").click(function () {
+            $(".search-image").show(); // 显示搜索图片
+            $(".result").empty(); // 清空结果
+            $(".result-count").hide(); // 隐藏结果数量
+            $(".back-btn").hide(); // 隐藏返回按钮
+            $(".ads").show(); // 显示广告内容
+            $(".container .search input").val(''); // 清空输入框
+            $(".container .search input").attr("placeholder", "please input the key word ..."); // 恢复初始提示文本
+        });
     </script>
 </body>
 
