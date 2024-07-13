@@ -32,7 +32,12 @@
     - [编写search功能](#编写search功能)
     - [编写测试用的 server 和收尾工作](#编写测试用的-server-和收尾工作)
   - [搭建网络服务](#搭建网络服务)
+    - [`cpp-httplib`](#cpp-httplib)
+    - [搭建基本结构](#搭建基本结构)
   - [搭建前端页面](#搭建前端页面)
+    - [html和css](#html和css)
+    - [js](#js)
+  - [处理文档重复的问题](#处理文档重复的问题)
 
 ## 搜索引擎的相关宏观原理
 
@@ -96,6 +101,7 @@ boost的官方网站：[boost.org](https://www.boost.org)
 
 这里我们可以看到boost服务器上的所有内容。
 
+> [!TIP]
 > boost.org其实不太稳定，有时候会挂掉，因此我们完全可以利用自己的写的服务器把这个网站搭出来，在自己的网站上做搜索也是可以的。
 
 ## 编写数据去标签与数据清洗的模块 Parser
@@ -328,6 +334,7 @@ public:
 
 #### 解析url
 
+> [!TIP]
 > boost库的官方文档和我们下载的资源是有路径的对应关系的
 
 官方文档路径：`https://www.boost.org/doc/libs/1_85_0/doc/html/accumulators.html`
@@ -353,6 +360,7 @@ static const std::string url_head = "https://www.boost.org/doc/libs/1_85_0/doc/h
 
 能了能够使用`std::getline`方法直接读取一个文件里面的所有东西，所以定义规则为：
 
+> [!TIP]
 > `title\3content\3url \n title\3content\3url \n title\3content\3url`
 
 ## 编写建立索引的模块 Index
@@ -500,6 +508,7 @@ std::unordered_map<std::string, inverted_list_t> __inverted_index; // 倒排索�
 
 **cppjieba安装：**
 
+> [!TIP]
 > https://github.com/yanyiwu/cppjieba
 
 cppjieba是header only的，所以直接包含他的头文件即可了。`include/cpp/*.hpp`
@@ -675,10 +684,12 @@ public:
 
 我是ubuntu22.04
 
+> [!TIP]
 > sudo apt install libjsoncpp-dev
 
 如果是centos
 
+> [!TIP]
 > sudo yum install -y jsoncpp-devel
 
 
@@ -780,7 +791,102 @@ int main() {
     }
 ```
 
-
 ## 搭建网络服务
 
+### `cpp-httplib`
+
+使用cpp-httplib第三方库。
+
+> [!NOTE]
+> https://github.com/yhirose/cpp-httplib
+
+
+> [!WARNING]
+> 1. 要使用较新版本的gcc/g++, 我的版本是`gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04) `
+> 2. 这个是headeronly的，直接包含头文件就可以了
+> 3. 有一些系统每次启动新bash的时候，gcc版本都会回到旧版：可以把启动命令放到`~/.bash_profile`中去，当然有些系统本来就是最新版，具体升级可以搜索其他相关资料
+> 4. 建议使用 cpphttplib 的 0.7.15版本, 如果用最新的，那建议gcc也是最新的
+> 5. 使用的时候要带 `-lpthread`
+
+### 搭建基本结构
+
+```cpp
+void build_server() {
+    // 定义searcher
+    ns_searcher::searcher ser;
+    ser.init_searcher(resource_path);
+
+    httplib::Server svr;
+    svr.set_base_dir(root_path.c_str());
+    svr.Get("/s", [&ser](const httplib::Request& req, httplib::Response& rsp) {
+        // 设置用户输入的关键字的参数名为 word
+        if (!req.has_param("word")) {
+            rsp.set_content("none key word, please enter your param", "text/plain; charset=utf-8");
+            return;
+        }
+        // 有关键字
+        std::string word = req.get_param_value("word");
+        std::string json_string; // 这个是搜索结果
+        ser.search(word, &json_string);
+        rsp.set_content(json_string, "application/json; charset=utf-8");
+    });
+    svr.listen("0.0.0.0", 8081);
+}
+```
+通过这样，我们就可以通过关键字进行搜索了。
+
+可以先稍微测试一下：
+
+在浏览器输入: `http://10.211.55.4:8081/s?word=filesystem` 其中 ip 是自己服务器的ip
+
+> [!NOTE]
+> `/s`是我们设置GET方法的时候设置的搜索路径，然后?word=filesystem表示我们的参数名是word，内容是filesystem，在上面这份搜索代码中，表示搜索filesystem的内容。
+
+可以看到浏览器输出的结果：
+
+![](./assets/15.png)
+
+当然，后续我们要开始把这些内容整理到前端上了！
+
 ## 搭建前端页面
+
+### html和css
+
+细节略。见代码。
+
+### js
+
+然后我们肯定要用一下jQuery。我用的是这个源。
+
+```html
+<script src="http://code.jquery.com/jquery-2.1.1.min.js"></script>
+```
+
+## 处理文档重复的问题
+
+为什么会有文档重复问题。
+
+比如一个文档里面有: I am a `student programmer`.
+
+此时如果搜索: `student programmer`。可能就搜出来两个文档在页面中，指向的都是同一个文档。这个也是很好理解的。
+
+如何处理这个问题？
+
+我们可以另外定一个一个专门用来打印的倒排拉链节点。
+
+```cpp
+struct inverted_elem_print {
+    uint64_t __doc_id;
+    int __weight;
+    std::vector<std::string> __words;
+    inverted_elem_print()
+        : __doc_id(0)
+        , __weight(0) { }
+};
+```
+
+维护一个建立用来去重的数据结构：
+
+```cpp
+std::unordered_map<uint64_t, inverted_elem_print> token_map;
+```

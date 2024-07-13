@@ -7,6 +7,16 @@
 #include <jsoncpp/json/json.h>
 
 namespace ns_searcher {
+
+struct inverted_elem_print {
+    uint64_t __doc_id;
+    int __weight;
+    std::vector<std::string> __words;
+    inverted_elem_print()
+        : __doc_id(0)
+        , __weight(0) { }
+};
+
 class searcher {
 private:
     ns_index::index* __index; // 供系统进行查找的索引
@@ -34,7 +44,9 @@ public:
         ns_util::jieba_util::cut_string(query, &query_words);
         // 2. 触发：就是根据分词的各个词，进行index查找
         // 注意大小写，这里需要忽略大小写
-        ns_index::inverted_list_t inverted_list_all; // 内部是 inverted_elem
+        // ns_index::inverted_list_t inverted_list_all; // 内部是 inverted_elem
+        std::vector<inverted_elem_print> inverted_list_all;
+        std::unordered_map<uint64_t, inverted_elem_print> token_map;
         for (std::string word : query_words) {
             boost::to_lower(word);
             // 必须先查倒排
@@ -42,13 +54,25 @@ public:
             if (nullptr == inverted_list)
                 // 没有倒排就一定没有正排
                 continue;
-            inverted_list_all.insert(inverted_list_all.end(), inverted_list->begin(), inverted_list->end()); // 批量化插入
-            // 这里的 inverted_list_all 可能会有遗留问题，可能文档名是有重复的
+            // 去重
+            for (const auto& elem : *inverted_list) {
+                auto &item = token_map[elem.__doc_id]; // 如果存在，直接获取，如果不在，直接新建, 注意，这里的&不要漏掉，如果拷贝一个临时变量就麻烦了
+                // item一定是doc_id相同的print节点
+                item.__doc_id = elem.__doc_id;
+                item.__weight += elem.__weight;
+                item.__words.push_back(elem.__word);
+            }
         }
+        for (const auto& item : token_map)
+            inverted_list_all.push_back(item.second);
+        // inverted_list_all.insert(inverted_list_all.end(), inverted_list->begin(), inverted_list->end()); // 批量化插入
+        // 这里的 inverted_list_all 可能会有遗留问题，可能文档名是有重复的
         // 3. 合并排序：汇总查找结果，按照相关性进行降序排序
-        std::sort(inverted_list_all.begin(), inverted_list_all.end(), [](const ns_index::inverted_elem& e1, const ns_index::inverted_elem& e2) {
-            return e1.__weight > e2.__weight;
-        });
+        // std::sort(inverted_list_all.begin(), inverted_list_all.end(), [](const ns_index::inverted_elem& e1, const ns_index::inverted_elem& e2) {
+        //     return e1.__weight > e2.__weight;
+        // });
+        std::sort(inverted_list_all.begin(), inverted_list_all.end(),
+            [](const inverted_elem_print& e1, const inverted_elem_print& e2) { return e1.__weight > e2.__weight; });
         // 4. 构建：根据查找出来的结果构建json串，jsoncpp
         Json::Value root;
         for (auto& item : inverted_list_all) {
@@ -59,11 +83,12 @@ public:
             Json::Value elem;
             elem["title"] = doc->__title;
             // doc->__content 是去标签的全部结果，不是我们想要的，我们想要的只有一部分。TODO
-            elem["desc"] = get_desc(doc->__content, item.__word);
+            // elem["desc"] = get_desc(doc->__content, item.__word);
+            elem["desc"] = get_desc(doc->__content, item.__words[0]); // 改了之后，有多个词，所以随便选一个构成摘要就行了
             elem["url"] = doc->__url;
             root.append(elem); // 按顺序append到root中了
         }
-        Json::StyledWriter writer;
+        Json::FastWriter writer;
         *json_string = writer.write(root); // 序列化！
     }
     std::string get_desc(const std::string& html_content, const std::string& word) {
@@ -85,7 +110,7 @@ public:
         // 3. 截取字串
         if (start >= end)
             return "null: start >= end"; // 不可能情况
-        return html_content.substr(start, end - start);
+        return html_content.substr(start, end - start) + "  ...";
     }
 };
 } // namespace ns_searcher

@@ -1,8 +1,6 @@
 # boost-search-engine
 一个boost搜索引擎实现
 
-开题：20240711
-
 - [boost-search-engine](#boost-search-engine)
   - [项目相关信息](#项目相关信息)
     - [搜索引擎的原理](#搜索引擎的原理)
