@@ -1,4 +1,8 @@
-
+/*
+ * Write by Yufc
+ * See https://github.com/ffengc/boost-search-engine
+ * please cite my project link: https://github.com/ffengc/boost-search-engine when you use this code
+ */
 
 #ifndef __YUFC_SERACH_ENGINE_INDEX_HPP__
 #define __YUFC_SERACH_ENGINE_INDEX_HPP__
@@ -25,7 +29,7 @@ struct inverted_elem {
 };
 typedef std::vector<inverted_elem> inverted_list_t; // 倒排拉链
 static const char sep = '\3';
-static const int title_co_rate = 10; // 计算title和内容出现词的权重
+static const int title_co_rate = 20000; // 计算title和内容出现词的权重
 static const int content_co_rate = 1;
 class index {
 private:
@@ -94,8 +98,12 @@ public:
             // 建立倒排索引
             __build_inverted_index(*doc);
             cnt++;
+            if (cnt % 50 == 0) {
+                LOG(INFO) << "building index: " << "[" << cnt << "]" << "\r";
+                fflush(stdout);
+            }
         }
-
+        std::cout << std::endl;
         return true;
     }
 
@@ -111,7 +119,7 @@ private:
         doc_info doc;
         doc.__title = results[0];
         doc.__content = results[1];
-        doc.__title = results[2];
+        doc.__url = results[2];
         doc.__doc_id = __forward_index.size();
         // 3. 插入到正排索引的vector中
         __forward_index.push_back(std::move(doc));
@@ -150,9 +158,11 @@ private:
             inverted_list_t& inverted_list = __inverted_index[word_pair.first];
             inverted_list.push_back(std::move(item));
         }
+        return true;
     }
 };
 index* index::__instance = nullptr;
+std::mutex index::__instance_lock;
 } // namespace ns_index
 
 #endif

@@ -1,4 +1,8 @@
-
+/*
+ * Write by Yufc
+ * See https://github.com/ffengc/boost-search-engine
+ * please cite my project link: https://github.com/ffengc/boost-search-engine when you use this code
+ */
 
 #ifndef __YUFC_SERACH_ENGINE_PARSER_HPP__
 #define __YUFC_SERACH_ENGINE_PARSER_HPP__
@@ -115,6 +119,7 @@ public:
             out_string += file_sep; // + '\n'
             out.write(out_string.c_str(), out_string.size());
             LOG(INFO) << "saving parse result: " << cnt << "\r";
+            fflush(stdout);
         }
         std::cout << std::endl;
         out.close();
@@ -147,7 +152,7 @@ public:
         for (char c : file) {
             switch (s) {
             case LABLE:
-                if (c == 'c') // 此时标签已经被处理完毕了
+                if (c == '>') // 此时标签已经被处理完毕了
                     s = CONTENT;
                 break;
             case CONTENT:

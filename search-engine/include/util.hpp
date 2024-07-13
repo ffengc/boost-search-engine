@@ -1,4 +1,8 @@
-
+/*
+ * Write by Yufc
+ * See https://github.com/ffengc/boost-search-engine
+ * please cite my project link: https://github.com/ffengc/boost-search-engine when you use this code
+ */
 
 #ifndef __YUFC_SERACH_ENGINE_UTIL_HPP__
 #define __YUFC_SERACH_ENGINE_UTIL_HPP__
@@ -31,15 +35,17 @@ class string_util {
 public:
     static void cut_string(const std::string& target, std::vector<std::string>* out, char sep) {
         // boost split
-        boost::split(*out, target, boost::is_any_of(sep), boost::token_compress_on);
+        std::string ssep(1, sep);
+        boost::split(*out, target, boost::is_any_of(ssep), boost::token_compress_on);
     }
 };
 
-const char* const DICT_PATH = "./cppjieba/dict/jieba.dict.utf8";
-const char* const HMM_PATH = "./cppjieba/dict/hmm_model.utf8";
-const char* const USER_DICT_PATH = "./cppjieba/dict/user.dict.utf8";
-const char* const IDF_PATH = "./cppjieba/dict/idf.utf8";
-const char* const STOP_WORD_PATH = "./cppjieba/dict/stop_words.utf8";
+// 这里要写相对于可执行文件的相对路径
+const char* const DICT_PATH = "./include/cppjieba/dict/jieba.dict.utf8";
+const char* const HMM_PATH = "./include/cppjieba/dict/hmm_model.utf8";
+const char* const USER_DICT_PATH = "./include/cppjieba/dict/user.dict.utf8";
+const char* const IDF_PATH = "./include/cppjieba/dict/idf.utf8";
+const char* const STOP_WORD_PATH = "./include/cppjieba/dict/stop_words.utf8";
 class jieba_util {
 private:
     static cppjieba::Jieba jieba;
