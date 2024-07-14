@@ -19,6 +19,8 @@
 - **[简体中文](./README-cn.md)**
 - **[English](./README.md)**
 
+> [!NOTE]
+> If you have any questions about the operation and implementation of this project, or if you have better optimization suggestions for this project, you can contact me directly or leave an issue in the repository.
 
 ## 📚摘要
 
