@@ -49,9 +49,13 @@ boost库是为C++语言标准库提供扩展的一些C++程序库的总称，由
 
 ## ✅实现效果
 
-使用效果：
+功能演示：
 
-![](./assets/effect.gif)
+<div align="center">  
+
+[![](./assets/demo.mp4)](https://github.com/user-attachments/assets/a3d12e23-78a9-4d91-957b-e3cf22cac555)
+
+</div>
 
 后端效果：
 
