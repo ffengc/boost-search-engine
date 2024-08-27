@@ -52,7 +52,11 @@ Boost library is a general term for some C++ libraries that provide extensions t
 
 Effect:
 
-![](./assets/effect.gif)
+<div align="center">  
+
+https://github.com/user-attachments/assets/a3d12e23-78a9-4d91-957b-e3cf22cac555
+
+</div>
 
 Backend effects:
 
