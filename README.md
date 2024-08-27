@@ -54,7 +54,7 @@ Effect:
 
 <div align="center">  
 
-[![](./assets/demo.mp4)](https://github.com/user-attachments/assets/a3d12e23-78a9-4d91-957b-e3cf22cac555)
+https://github.com/user-attachments/assets/a3d12e23-78a9-4d91-957b-e3cf22cac555
 
 </div>
 
