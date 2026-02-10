@@ -66,7 +66,7 @@ Backend effects:
 
 Since the project does not implement crawler services, the method of downloading data to the local computer is adopted here. The data HTML file or directory can be placed in the following directory.
 
-**Specific steps can be found at:**[word.md-chapter](./work.md#获取数据源)
+**Specific steps can be found at:** [work.md - Obtaining the Data Source](./work.md#obtaining-the-data-source)
 
 `boost-search-engine/search-engine/data/input`
 
@@ -232,7 +232,7 @@ Use a browser to access the 8081 port number of the IP. The port number is set i
 
 ## 💼Implementation details
 
-- **[work.md](./work.md) (only Chinese)**
+- **[work.md](./work.md)**
 
 ## 📈To be optimized
 

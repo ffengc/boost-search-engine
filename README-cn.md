@@ -65,7 +65,7 @@ https://github.com/user-attachments/assets/a3d12e23-78a9-4d91-957b-e3cf22cac555
 
 由于项目没有实现爬虫服务，因此这里采用下载数据到本地的方式。数据HTML文件或目录放到以下目录即可。
 
-**具体步骤可以见：**[word.md-获取数据源](./work.md#获取数据源)
+**具体步骤可以见：**[work-cn.md-获取数据源](./work-cn.md#获取数据源)
 
 `boost-search-engine/search-engine/data/input`
 
@@ -229,7 +229,7 @@ nohup ./server > log/log.txt 2>&1 &
 
 ## 💼实现细节
 
-- **[work.md](./work.md) (仅有中文)**
+- **[work-cn.md](./work-cn.md)**
 
 ## 📈待优化
 
